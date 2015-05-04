@@ -50,6 +50,7 @@ class UamAccessHandler
     protected $_aAllObjectTypesMap = null;
     protected $_aSqlResults = array();
     protected $_aValidObjectTypes = array();
+    protected $_aCustomTaxonomies = array();
     
     /**
      * The constructor
@@ -66,6 +67,7 @@ class UamAccessHandler
         $this->_aPostableTypesMap = array_flip($this->_aPostableTypes);
         
         $this->_aObjectTypes = array_merge($this->_aPostableTypes, $this->_aObjectTypes);
+        $this->_aCustomTaxonomies = array_intersect( get_taxonomies(array('public' => true, '_builtin' => false)), get_object_taxonomies($this->_aPostableTypes) );
         add_action( 'registered_post_type', array( &$this, 'registered_post_type'), 10, 2);
     }
 
@@ -87,6 +89,7 @@ class UamAccessHandler
             $this->_aAllObjectTypes = null;
             $this->_aAllObjectTypesMap = null;
             $this->_aValidObjectTypes = null;
+            $this->_aCustomTaxonomies = array_intersect( get_taxonomies(array('public' => true, '_builtin' => false)), get_object_taxonomies($this->_aPostableTypes) );
         }
     }
 
@@ -132,6 +135,16 @@ class UamAccessHandler
         return $this->_aPostableTypes;
     }
     
+    /**
+     * Returns custom taxonomies.
+     * 
+     * @return array;
+     */
+    public function getCustomTaxonomies()
+    {
+        return $this->_aCustomTaxonomies;
+    }
+
     /**
      * Returns all objects types.
      * 

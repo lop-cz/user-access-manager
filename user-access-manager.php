@@ -123,7 +123,7 @@ if (!function_exists("userAccessManagerAP")) {
 
         $oUamAccessHandler = $oUserAccessManager->getAccessHandler();
         $aPostableTypes = $oUamAccessHandler->getPostableTypes();
-        $aTaxonomies = get_taxonomies(array('public' => true, '_builtin' => false));
+        $aTaxonomies = $oUamAccessHandler->getCustomTaxonomies();
 
         if ($oUamAccessHandler->checkUserAccess()
             || $aUamOptions['authors_can_add_posts_to_groups'] == 'true'
