@@ -122,6 +122,7 @@ if (!function_exists("userAccessManagerAP")) {
         }
 
         $oUamAccessHandler = $oUserAccessManager->getAccessHandler();
+        $aPostableTypes = $oUamAccessHandler->getPostableTypes();
         $aTaxonomies = get_taxonomies(array('public' => true, '_builtin' => false));
 
         if ($oUamAccessHandler->checkUserAccess()
@@ -132,8 +133,12 @@ if (!function_exists("userAccessManagerAP")) {
                 add_action('admin_enqueue_scripts', array($oUserAccessManager, 'addStyles'));
                 add_action('admin_enqueue_scripts', array($oUserAccessManager, 'addScripts'));
 
-                add_action('manage_posts_custom_column', array($oUserAccessManager, 'addPostColumn'), 10, 2);
-                add_action('manage_pages_custom_column', array($oUserAccessManager, 'addPostColumn'), 10, 2);
+                foreach ($aPostableTypes as $sPostableType) {
+                    if ($sPostableType == 'attachment') {
+                        continue;
+                    }
+                    add_action('manage_'.$sPostableType.'_posts_custom_column', array($oUserAccessManager, 'addPostColumn'), 10, 2);
+                }
                 add_action('save_post', array($oUserAccessManager, 'savePostData'));
 
                 add_action('manage_media_custom_column', array($oUserAccessManager, 'addPostColumn'), 10, 2);
@@ -169,8 +174,12 @@ if (!function_exists("userAccessManagerAP")) {
                 //The filter we use instead of add|edit_attachment action, reason see top
                 add_filter('attachment_fields_to_save', array($oUserAccessManager, 'saveAttachmentData'));
 
-                add_filter('manage_posts_columns', array($oUserAccessManager, 'addPostColumnsHeader'));
-                add_filter('manage_pages_columns', array($oUserAccessManager, 'addPostColumnsHeader'));
+                foreach ($aPostableTypes as $sPostableType) {
+                    if ($sPostableType == 'attachment') {
+                        continue;
+                    }
+                    add_filter('manage_'.$sPostableType.'_posts_columns', array($oUserAccessManager, 'addPostColumnsHeader'));
+                }
 
                 add_filter('manage_users_columns', array($oUserAccessManager, 'addUserColumnsHeader'), 10);
                 add_filter('manage_users_custom_column', array($oUserAccessManager, 'addUserColumn'), 10, 3);
