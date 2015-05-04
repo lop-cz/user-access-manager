@@ -1486,16 +1486,18 @@ class UserAccessManager
     public function parseQuery($oWpQuery)
     {
         $aUamOptions = $this->getAdminOptions();
+        $post_type = $oWpQuery->get('post_type');
         
-        if ($aUamOptions['hide_post'] == 'true') {
+        if ($aUamOptions['hide_post'] == 'true' && ($post_type == 'post' || $post_type == 'any')) {
             $oUamAccessHandler = $this->getAccessHandler();
             $aExcludedPosts = $oUamAccessHandler->getExcludedPosts();
             
             if (count($aExcludedPosts) > 0) {
-                $oWpQuery->query_vars['post__not_in'] = array_merge(
-                    $oWpQuery->query_vars['post__not_in'],
-                    $aExcludedPosts
-                );
+                $oWpQuery->query_vars['post__not_in'] = array_unique( array_merge($oWpQuery->query_vars['post__not_in'], $aExcludedPosts) );
+                // remove excluded posts from 'post__in' query var
+                if (!empty($oWpQuery->query_vars['post__in'])) {
+                    $oWpQuery->query_vars['post__in'] = array_diff($oWpQuery->query_vars['post__in'], $aExcludedPosts);
+                }
             }
         }
     }
