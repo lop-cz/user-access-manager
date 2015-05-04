@@ -141,8 +141,6 @@ if (!function_exists("userAccessManagerAP")) {
                 }
                 add_action('save_post', array($oUserAccessManager, 'savePostData'));
 
-                add_action('manage_media_custom_column', array($oUserAccessManager, 'addPostColumn'), 10, 2);
-
                 //Actions are only called when the attachment content is modified so we can't use it.
                 //add_action('add_attachment', array($oUserAccessManager, 'savePostData'));
                 //add_action('edit_attachment', array($oUserAccessManager, 'savePostData'));
@@ -188,8 +186,9 @@ if (!function_exists("userAccessManagerAP")) {
                 add_filter('manage_category_custom_column', array($oUserAccessManager, 'addCategoryColumn'), 10, 3);
             }
 
-            if ($aUamOptions['lock_file'] == 'true') {
+            if (in_array('attachment', $aPostableTypes)) {
                 add_action('media_meta', array($oUserAccessManager, 'showMediaFile'), 10, 2);
+                add_action('manage_media_custom_column', array($oUserAccessManager, 'addPostColumn'), 10, 2);
                 add_filter('manage_media_columns', array($oUserAccessManager, 'addPostColumnsHeader'));
             }
         }
