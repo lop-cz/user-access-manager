@@ -124,10 +124,10 @@ class UserAccessManager
      *
      * @return mixed
      */
-    public function getCategory($sId)
+    public function getCategory($sId, $sTaxonomy = 'category')
     {
         if (!isset($this->_aCategories[$sId])) {
-            $this->_aCategories[$sId] = get_category($sId);
+            $this->_aCategories[$sId] = get_term($sId, $sTaxonomy);
         }
 
         return $this->_aCategories[$sId];
@@ -1640,12 +1640,12 @@ class UserAccessManager
                         $aShowItems[] = $oItem;
                     }
                 }
-            } elseif ($oItem->object == 'category') {
-                $oObject = $this->getCategory($oItem->object_id);
-                $oCategory = $this->_getTerm('category', $oObject);
+            } elseif ($oItem->type == 'taxonomy') {
+                $oObject = $this->getCategory($oItem->object_id, $oItem->object);
+                $oCategory = $this->_getTerm($oItem->object, $oObject);
 
                 if ($oCategory !== null && !$oCategory->isEmpty) {
-                    $oItem->title .= $this->adminOutput($oItem->object, $oItem->object_id);
+                    $oItem->title .= $this->adminOutput('category', $oItem->object_id);
                     $aShowItems[] = $oItem;
                 }
             } else {
@@ -1797,7 +1797,7 @@ class UserAccessManager
                 //For categories
                 if ($oTerm->count <= 0
                     && $aUamOptions['hide_empty_categories'] == 'true'
-                    && $oTerm->taxonomy == "category"
+                    //&& $oTerm->taxonomy == "category"
                 ) {
                     $oTerm->isEmpty = true;
                 }
@@ -1806,7 +1806,7 @@ class UserAccessManager
                     $oCurCategory = $oTerm;
                     
                     while ($oCurCategory->parent != 0) {
-                        $oCurCategory = get_term($oCurCategory->parent, 'category');
+                        $oCurCategory = get_term($oCurCategory->parent, $sTermType);
                         
                         if ($oUamAccessHandler->checkObjectAccess('category', $oCurCategory->term_id)) {
                             $oTerm->parent = $oCurCategory->term_id;
@@ -1834,8 +1834,9 @@ class UserAccessManager
     public function showTerms($aTerms, $aTaxonomies, $aArgs)
     {
         $oUamAccessHandler = $this->getAccessHandler();
+        $aAllTaxonomies = array_merge( array('category', 'post_tag'), $oUamAccessHandler->getCustomTaxonomies() );
         
-        if (!in_array(reset($aTaxonomies), array('category', 'post_tag'))
+        if (!in_array(reset($aTaxonomies), $aAllTaxonomies)
             || empty($aTerms)
             || 'all' != $aArgs['fields']
             || ($this->atAdminPanel() && $oUamAccessHandler->checkUserAccess())

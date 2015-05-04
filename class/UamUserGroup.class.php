@@ -897,14 +897,14 @@ class UamUserGroup
         $aUamOptions = $oUserAccessManager->getAdminOptions();
 
         if ($aUamOptions['lock_recursive'] == 'true') {
-            $oCategory = $oUserAccessManager->getCategory($iObjectId);
+            $oCategory = $oUserAccessManager->getCategory($iObjectId, $this->getTermTaxonomy($iObjectId));
             if (isset($oCategory->parent)
                 && !is_null($oCategory->parent)
             ) {
                 $oParentCategory = $this->_getSingleObject('category', $oCategory->parent, 'full');
 
                 if ($oParentCategory !== null) {
-                    $oParentCategoryObject = $oUserAccessManager->getCategory($oParentCategory->id);
+                    $oParentCategoryObject = $oUserAccessManager->getCategory($oParentCategory->id, $this->getTermTaxonomy($oParentCategory->id));
                     $oParentCategory->name = $oParentCategoryObject->name;
                     $aIsRecursiveMember['category'][] = $oParentCategory;
                 }
@@ -935,7 +935,7 @@ class UamUserGroup
                     if ($blRemoveSuccess) {
                         $aArgs = array('child_of' => $oCategory->id, 'hide_empty' => false);
 
-                        $aCategoryChildren = get_categories($aArgs);
+                        $aCategoryChildren = get_terms( $this->getTermTaxonomy($oCategory->id), $aArgs );
                         
                         add_filter('get_terms', array($oUserAccessManager, 'showTerms'), 10, 3);
                         
@@ -1032,13 +1032,13 @@ class UamUserGroup
                  * @var wpdb $wpdb
                  */
                 global $wpdb;
+                $taxonomies = "'" . implode( "', '", array_merge(array('category'), $this->getAccessHandler()->getCustomTaxonomies()) ) . "'";
 
                 $aDbObjects = $wpdb->get_results(
                     "SELECT tr.object_id AS objectId, tt.term_id AS categoryId
-                    FROM ".$wpdb->term_relationships." AS tr,
-                    ".$wpdb->term_taxonomy." AS tt
+                    FROM $wpdb->term_relationships AS tr, $wpdb->term_taxonomy AS tt
                 WHERE tr.term_taxonomy_id = tt.term_taxonomy_id
-                    AND tt.taxonomy = 'category'"
+                    AND tt.taxonomy IN ($taxonomies)"
                 );
 
                 foreach ($aDbObjects as $oDbObject) {
@@ -1076,7 +1076,7 @@ class UamUserGroup
 
         foreach ($this->getObjectsFromType('category', 'full') as $oCategory) {
             if ($this->_isPostInCategory($oPost->ID, $oCategory->id)) {
-                $oCategoryObject = $oUserAccessManager->getCategory($oCategory->id);
+                $oCategoryObject = $oUserAccessManager->getCategory($oCategory->id, $this->getTermTaxonomy($oCategory->id));
                 $oCategory->name = $oCategoryObject->name;
                 
                 $aIsRecursiveMember['category'][] = $oCategory;
