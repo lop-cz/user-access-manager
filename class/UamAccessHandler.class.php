@@ -61,7 +61,7 @@ class UamAccessHandler
         $this->_oUserAccessManager = $oUserAccessManager;
 
         $this->_aPostableTypes = array_merge($this->_aPostableTypes, get_post_types(array('publicly_queryable' => true), 'names'));
-        $this->_aPostableTypes = array_unique($this->_aPostableTypes);
+        $this->_aPostableTypes = apply_filters( 'uam_set_postable_types', array_unique($this->_aPostableTypes) );
 
         $this->_aPostableTypesMap = array_flip($this->_aPostableTypes);
         
@@ -81,7 +81,7 @@ class UamAccessHandler
     {
         if ($oArgs->publicly_queryable) {
             $this->_aPostableTypes[] = $oArgs->name;
-            $this->_aPostableTypes = array_unique($this->_aPostableTypes);
+            $this->_aPostableTypes = apply_filters( 'uam_set_postable_types', array_unique($this->_aPostableTypes) );
             $this->_aPostableTypesMap = array_flip($this->_aPostableTypes);
             $this->_aObjectTypes = array_unique( array_merge($this->_aObjectTypes, $this->_aPostableTypes) );
             $this->_aAllObjectTypes = null;
