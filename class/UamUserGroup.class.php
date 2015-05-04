@@ -43,6 +43,7 @@ class UamUserGroup
     protected $_aValidObjectTypes = array();
     protected $_aObjectsInCategory = null;
     protected $_aObjectIsMember = array();
+    protected $_aTermTaxonomies = null;
 
     /**
      * Constructor
@@ -595,6 +596,11 @@ class UamUserGroup
             }
 
             $oUserAccessManager->addToCache($sCacheKey, $this->_aAssignedObjects[$sObjectType]);
+            
+            // get term's taxonomies from DB for later usage
+            if ($sObjectType == 'category') {
+                $this->getTermTaxonomy();
+            }
         }
         
         return $this->_aAssignedObjects[$sObjectType];
@@ -950,6 +956,54 @@ class UamUserGroup
         }
         
         return $aCategories;
+    }
+    
+    /**
+     * Returns taxonomy name of the term.
+     *
+     * @param integer $iTermId   The term id.
+     *
+     * @return string
+     */
+    public function getTermTaxonomy($iTermId = 0)
+    {
+        if ($this->_aTermTaxonomies === null) {
+            $this->_aTermTaxonomies = array();
+            $sCacheKey = 'getTermTaxonomy|' . $this->getId();
+            $oUserAccessManager = $this->getAccessHandler()->getUserAccessManager();
+            $aTermTaxonomies = $oUserAccessManager->getFromCache($sCacheKey);
+
+            if ($aTermTaxonomies === null) {
+                /**
+                 * @var wpdb $wpdb
+                 */
+                global $wpdb;
+                
+                $aAllowedTaxonomies = array_merge( array('category'), $this->getAccessHandler()->getCustomTaxonomies() );
+                $sTerm_ids = implode(', ', $this->_aAssignedObjects['category']);
+                $aDbTerms = $wpdb->get_results( "SELECT term_id, taxonomy FROM $wpdb->term_taxonomy WHERE term_id IN ($sTerm_ids)" );
+                foreach ($aDbTerms as $oDbTerm) {
+                    // filter out other taxonomies
+                    if (in_array($oDbTerm->taxonomy, $aAllowedTaxonomies)) {
+                        // WARN: does not handle shared terms in multiple allowed taxonomies (pre WP 4.2)
+                        $this->_aTermTaxonomies[$oDbTerm->term_id] = $oDbTerm->taxonomy;
+                        // add term's children (duplicities will be overwritten)
+                        $aChildren = get_term_children($oDbTerm->term_id, $oDbTerm->taxonomy);
+                        foreach ($aChildren as $iChildId) {
+                            $this->_aTermTaxonomies[$iChildId] = $oDbTerm->taxonomy;
+                        }
+                    }
+                }
+                $oUserAccessManager->addToCache($sCacheKey, $this->_aTermTaxonomies);
+            } else {
+                $this->_aTermTaxonomies = $aTermTaxonomies;
+            }
+        }
+
+        if (isset($this->_aTermTaxonomies[$iTermId])) {
+            return $this->_aTermTaxonomies[$iTermId];
+        }
+        return 'category';
     }
     
     
