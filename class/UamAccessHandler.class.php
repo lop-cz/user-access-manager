@@ -635,35 +635,42 @@ class UamAccessHandler
             $sPostAssignedToUser = "''";
         }
         
+        // locked categories subquery
+        $sCategorySql = "SELECT gc.object_id
+            FROM ".DB_ACCESSGROUP." iag
+            INNER JOIN ".DB_ACCESSGROUP_TO_OBJECT." AS gc ON iag.id = gc.group_id
+            WHERE gc.object_type = 'category'
+            AND iag.{$sAccessType}_access != 'all'
+            AND gc.object_id NOT IN ($sCategoriesAssignedToUser)";
+        
+        $aCategoriesLockedToUser = $wpdb->get_col($sCategorySql);
+        
+        if (!empty($aCategoriesLockedToUser)) {
+            // include subcategories
+            $aSubCategories = array();
+            foreach ($aCategoriesLockedToUser as $iCatId) {
+                $aSubCategories = array_merge( $aSubCategories, get_term_children($iCatId, 'category') );
+            }
+            $aCategoriesLockedToUser = array_unique( array_merge( $aCategoriesLockedToUser, $aSubCategories ) );
+            $sCategoriesLockedToUser = implode(', ', $aCategoriesLockedToUser);
+        } else {
+            $sCategoriesLockedToUser = "''";
+        }
+
         $sPostSql = "SELECT DISTINCT p.ID
             FROM $wpdb->posts AS p
-            INNER JOIN $wpdb->term_relationships AS tr
-                ON p.ID = tr.object_id
-            INNER JOIN $wpdb->term_taxonomy tt
-                ON tr.term_taxonomy_id = tt.term_taxonomy_id
+            INNER JOIN $wpdb->term_relationships AS tr ON p.ID = tr.object_id
+            INNER JOIN $wpdb->term_taxonomy tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
             WHERE tt.taxonomy = 'category' 
-            AND tt.term_id IN (
-                SELECT gc.object_id
-                FROM ".DB_ACCESSGROUP." iag
-                INNER JOIN ".DB_ACCESSGROUP_TO_OBJECT." AS gc
-                    ON iag.id = gc.group_id
-                WHERE gc.object_type = 'category'
-                AND iag.".$sAccessType."_access != 'all'
-                AND gc.object_id  NOT IN (".$sCategoriesAssignedToUser.")
-            ) AND p.ID NOT IN (".$sPostAssignedToUser.")
+            AND tt.term_id IN ($sCategoriesLockedToUser)
+            AND p.ID NOT IN ($sPostAssignedToUser)
             UNION
             SELECT DISTINCT gp.object_id
             FROM ".DB_ACCESSGROUP." AS ag
-            INNER JOIN ".DB_ACCESSGROUP_TO_OBJECT." AS gp
-                ON ag.id = gp.group_id
-            INNER JOIN $wpdb->term_relationships AS tr
-                ON gp.object_id  = tr.object_id
-            INNER JOIN $wpdb->term_taxonomy tt
-                ON tr.term_taxonomy_id = tt.term_taxonomy_id
+            INNER JOIN ".DB_ACCESSGROUP_TO_OBJECT." AS gp ON ag.id = gp.group_id
             WHERE gp.object_type = 'post'
-            AND ag.".$sAccessType."_access != 'all'
-            AND gp.object_id  NOT IN (".$sPostAssignedToUser.")
-            AND tt.term_id NOT IN (".$sCategoriesAssignedToUser.")";
+            AND ag.{$sAccessType}_access != 'all'
+            AND gp.object_id NOT IN ($sPostAssignedToUser)";
         
         $this->_aSqlResults['excludedPosts'] = $wpdb->get_col($sPostSql);
         return $this->_aSqlResults['excludedPosts'];
