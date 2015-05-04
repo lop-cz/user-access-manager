@@ -187,7 +187,7 @@ if (!function_exists("userAccessManagerAP")) {
             }
 
             if (in_array('attachment', $aPostableTypes)) {
-                add_action('media_meta', array($oUserAccessManager, 'showMediaFile'), 10, 2);
+                //add_action('media_meta', array($oUserAccessManager, 'showMediaFile'), 10, 2);
                 add_action('manage_media_custom_column', array($oUserAccessManager, 'addPostColumn'), 10, 2);
                 add_filter('manage_media_columns', array($oUserAccessManager, 'addPostColumnsHeader'));
             }
